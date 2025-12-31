@@ -203,8 +203,8 @@ __logging
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   export PATH="$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH"
-  cmakeOptions+="-DCMAKE_CXX_FLAGS='-D_GNU_SOURCE -L$(brew --prefix icu4c)/lib -L$(brew --prefix tcl-tk@8)/lib -L$(brew --prefix yaml-cpp)/lib -Wno-unused-command-line-argument'"
-  export CMAKE_PREFIX_PATH="$(brew --prefix icu4c):$(brew --prefix zstd):$(brew --prefix flex):$(brew --prefix bison):$(brew --prefix or-tools):$CMAKE_PREFIX_PATH"
+  cmakeOptions+="-DCMAKE_CXX_FLAGS='-D_GNU_SOURCE -L$(brew --prefix icu4c)/lib -L$(brew --prefix tcl-tk@8)/lib -L$(brew --prefix yaml-cpp)/lib -L$(brew --prefix qt@5)/lib -L$(brew --prefix zstd)/lib -Wno-unused-command-line-argument'"
+  export CMAKE_PREFIX_PATH="$(brew --prefix icu4c):$(brew --prefix zstd):$(brew --prefix flex):$(brew --prefix bison):$(brew --prefix or-tools):$(brew --prefix qt@5)"
   export CMAKE_INSTALL_PREFIX="/Users/joonhyup/.local/bin"
 fi
 
