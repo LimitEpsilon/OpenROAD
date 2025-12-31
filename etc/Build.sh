@@ -12,7 +12,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   numThreads=$(sysctl -n hw.ncpu)
 else
-  cat << EOF
+  cat <<EOF
 WARNING: Unsupported OSTYPE: cannot determine number of host CPUs"
   Defaulting to 2 threads. Use --threads N to use N threads"
 EOF
@@ -25,7 +25,7 @@ depsPrefixesFile=""
 compiler=gcc
 
 _help() {
-    cat <<EOF
+  cat <<EOF
 usage: $0 [OPTIONS]
 
 OPTIONS:
@@ -62,156 +62,158 @@ OPTIONS:
                                                   or from system "/etc".
 
 EOF
-    exit "${1:-1}"
+  exit "${1:-1}"
 }
 
-__logging()
-{
-        local log_file="${buildDir}/openroad_build.log"
-        echo "[INFO] Saving logs to ${log_file}"
-        echo "[INFO] $__CMD"
-        exec > >(tee -i "${log_file}")
-        exec 2>&1
+__logging() {
+  local log_file="${buildDir}/openroad_build.log"
+  echo "[INFO] Saving logs to ${log_file}"
+  echo "[INFO] $__CMD"
+  exec > >(tee -i "${log_file}")
+  exec 2>&1
 }
 
 __CMD="$0 $@"
 while [ "$#" -gt 0 ]; do
-    case "${1}" in
-        -h|-help)
-            _help 0
-            ;;
-        -no-gui)
-            cmakeOptions+=" -DBUILD_GUI=OFF"
-            ;;
-        -no-tests)
-            cmakeOptions+=" -DENABLE_TESTS=OFF"
-            ;;
-        -ninja)
-            cmakeOptions+=" -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -GNinja"
-            isNinja=yes
-            ;;
-        -cpp20)
-            cmakeOptions+=" -DCMAKE_CXX_STANDARD=20"
-            ;;
-        -build-man)
-            cmakeOptions+=" -DBUILD_MAN=ON"
-            ;;
-        -compiler=*)
-            compiler="${1#*=}"
-            ;;
-        -no-warnings )
-            cmakeOptions+=" -DALLOW_WARNINGS=OFF"
-            ;;
-        -coverage )
-            cmakeOptions+=" -DCMAKE_BUILD_TYPE=Debug"
-            cmakeOptions+=" -DCMAKE_CXX_FLAGS='-fprofile-arcs -ftest-coverage'"
-            cmakeOptions+=" -DCMAKE_EXE_LINKER_FLAGS=-lgcov"
-            ;;
-        -cmake=*)
-            cmakeOptions+=" ${1#*=}"
-            ;;
-        -clean )
-            cleanBefore=yes
-            ;;
-        -dir=* )
-            buildDir="${1#*=}"
-            ;;
-        -threads=* )
-            temp="${1#*=}"
-            if [[ "${temp}" != "NotSet" ]]; then
-                numThreads=${temp}
-            fi
-            ;;
-        -deps-prefixes-file=*)
-            file="${1#-deps-prefixes-file=}"
-            if [[ ! -f "$file" ]]; then 
-                echo "${file} does not exist" >&2
-                _help
-            fi
-            depsPrefixesFile="$file"
-            ;;
-        -compiler | -cmake | -dir | -threads | -install | -deps-prefixes-file )
-            echo "${1} requires an argument" >&2
-            _help
-            ;;
-        -gpu)
-            cmakeOptions+=" -DGPU=ON"
-            ;;
-        *)
-            echo "unknown option: ${1}" >&2
-            _help
-            ;;
-    esac
-    shift 1
+  case "${1}" in
+  -h | -help)
+    _help 0
+    ;;
+  -no-gui)
+    cmakeOptions+=" -DBUILD_GUI=OFF"
+    ;;
+  -no-tests)
+    cmakeOptions+=" -DENABLE_TESTS=OFF"
+    ;;
+  -ninja)
+    cmakeOptions+=" -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -GNinja"
+    isNinja=yes
+    ;;
+  -cpp20)
+    cmakeOptions+=" -DCMAKE_CXX_STANDARD=20"
+    ;;
+  -build-man)
+    cmakeOptions+=" -DBUILD_MAN=ON"
+    ;;
+  -compiler=*)
+    compiler="${1#*=}"
+    ;;
+  -no-warnings)
+    cmakeOptions+=" -DALLOW_WARNINGS=OFF"
+    ;;
+  -coverage)
+    cmakeOptions+=" -DCMAKE_BUILD_TYPE=Debug"
+    cmakeOptions+=" -DCMAKE_CXX_FLAGS='-fprofile-arcs -ftest-coverage'"
+    cmakeOptions+=" -DCMAKE_EXE_LINKER_FLAGS=-lgcov"
+    ;;
+  -cmake=*)
+    cmakeOptions+=" ${1#*=}"
+    ;;
+  -clean)
+    cleanBefore=yes
+    ;;
+  -dir=*)
+    buildDir="${1#*=}"
+    ;;
+  -threads=*)
+    temp="${1#*=}"
+    if [[ "${temp}" != "NotSet" ]]; then
+      numThreads=${temp}
+    fi
+    ;;
+  -deps-prefixes-file=*)
+    file="${1#-deps-prefixes-file=}"
+    if [[ ! -f "$file" ]]; then
+      echo "${file} does not exist" >&2
+      _help
+    fi
+    depsPrefixesFile="$file"
+    ;;
+  -compiler | -cmake | -dir | -threads | -install | -deps-prefixes-file)
+    echo "${1} requires an argument" >&2
+    _help
+    ;;
+  -gpu)
+    cmakeOptions+=" -DGPU=ON"
+    ;;
+  *)
+    echo "unknown option: ${1}" >&2
+    _help
+    ;;
+  esac
+  shift 1
 done
 
 if [[ -z "$depsPrefixesFile" ]]; then
-    if [[ -f "$DIR/openroad_deps_prefixes.txt" ]]; then
-        depsPrefixesFile="$DIR/openroad_deps_prefixes.txt"
-    elif [[ -f "/etc/openroad_deps_prefixes.txt" ]]; then
-        depsPrefixesFile="/etc/openroad_deps_prefixes.txt"
-    fi
+  if [[ -f "$DIR/openroad_deps_prefixes.txt" ]]; then
+    depsPrefixesFile="$DIR/openroad_deps_prefixes.txt"
+  elif [[ -f "/etc/openroad_deps_prefixes.txt" ]]; then
+    depsPrefixesFile="/etc/openroad_deps_prefixes.txt"
+  fi
 fi
 if [[ -f "$depsPrefixesFile" ]]; then
-    cmakeOptions+=" $(cat "$depsPrefixesFile")"
-    echo "[INFO] Using additional CMake parameters from $depsPrefixesFile"
+  cmakeOptions+=" $(cat "$depsPrefixesFile")"
+  echo "[INFO] Using additional CMake parameters from $depsPrefixesFile"
 else
-    echo "[INFO] Auto-generated prefix file does not exist - CMake will choose the dependencies automatically"
+  echo "[INFO] Auto-generated prefix file does not exist - CMake will choose the dependencies automatically"
 fi
 
 case "${compiler}" in
-    "gcc" )
-        if [[ -f "/opt/rh/devtoolset-8/enable" ]]; then
-            # the scl script has unbound variables
-            set +u
-            source /opt/rh/devtoolset-8/enable
-            set -u
-        fi
-        export CC="$(command -v gcc)"
-        export CXX="$(command -v g++)"
-        ;;
-    "clang" )
-        if [[ -f "/opt/rh/llvm-toolset-7.0/enable" ]]; then
-            # the scl script has unbound variables
-            set +u
-            source /opt/rh/llvm-toolset-7.0/enable
-            set -u
-        fi
-        export CC="$(command -v clang)"
-        export CXX="$(command -v clang++)"
-        ;;
-    "clang-16" )
-        export CC="$(command -v clang-16)"
-        export CXX="$(command -v clang++-16)"
-        ;;
-    *)
-        export CC=""
-        export CXX=""
+"gcc")
+  if [[ -f "/opt/rh/devtoolset-8/enable" ]]; then
+    # the scl script has unbound variables
+    set +u
+    source /opt/rh/devtoolset-8/enable
+    set -u
+  fi
+  export CC="$(command -v gcc)"
+  export CXX="$(command -v g++)"
+  ;;
+"clang")
+  if [[ -f "/opt/rh/llvm-toolset-7.0/enable" ]]; then
+    # the scl script has unbound variables
+    set +u
+    source /opt/rh/llvm-toolset-7.0/enable
+    set -u
+  fi
+  export CC="$(command -v clang)"
+  export CXX="$(command -v clang++)"
+  ;;
+"clang-16")
+  export CC="$(command -v clang-16)"
+  export CXX="$(command -v clang++-16)"
+  ;;
+*)
+  export CC=""
+  export CXX=""
+  ;;
 esac
 
 if [[ -z "${CC}" || -z "${CXX}" ]]; then
-        echo "Compiler $compiler not installed or it is not supported." >&2
-        _help 1
+  echo "Compiler $compiler not installed or it is not supported." >&2
+  _help 1
 fi
 
 if [[ "${cleanBefore}" == "yes" ]]; then
-    rm -rf "${buildDir}"
+  rm -rf "${buildDir}"
 fi
 
 mkdir -p "${buildDir}"
 __logging
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    export PATH="$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH"
-    export CMAKE_PREFIX_PATH=$(brew --prefix or-tools)
+  export PATH="$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH"
+  cmakeOptions+="-DCMAKE_CXX_FLAGS='-D_GNU_SOURCE -L$(brew --prefix icu4c)/lib -L$(brew --prefix tcl-tk@8)/lib -L$(brew --prefix yaml-cpp)/lib -Wno-unused-command-line-argument'"
+  export CMAKE_PREFIX_PATH="$(brew --prefix icu4c):$(brew --prefix zstd):$(brew --prefix flex):$(brew --prefix bison):$(brew --prefix or-tools):$CMAKE_PREFIX_PATH"
+  export CMAKE_INSTALL_PREFIX="/Users/joonhyup/.local/bin"
 fi
 
 echo "[INFO] Using ${numThreads} threads."
 if [[ "$isNinja" == "yes" ]]; then
-    eval cmake "${cmakeOptions}" -B "${buildDir}" .
-    cd "${buildDir}"
-    CLICOLOR_FORCE=1 ninja build_and_test
-    exit 0
+  eval cmake "${cmakeOptions}" -B "${buildDir}" .
+  cd "${buildDir}"
+  CLICOLOR_FORCE=1 ninja build_and_test
+  exit 0
 fi
 eval cmake "${cmakeOptions}" -B "${buildDir}" .
 eval time cmake --build "${buildDir}" -j "${numThreads}"
